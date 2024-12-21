@@ -1,0 +1,62 @@
+import matplotlib.pyplot as plt
+import numpy as np
+
+total_mass = 2.76818 * 10**6
+leo_fuel_mass = 2.04 * 10**6
+leo_rocket_mass = 0.139 * 10**6
+s2_fuel_mass = 0.430 * 10**6
+s2_rocket_mass = 0.04 * 10**6
+s3_fuel_mass = 0.104 * 10**6
+s3_rocket_mass = 0.015 * 10**6
+
+alpha = 13534
+beta = 1172
+gamma = 217
+
+leo_duration = leo_fuel_mass / alpha
+s2_duration = s2_fuel_mass / beta
+s3_duration = s3_fuel_mass / gamma
+
+# Generate time intervals
+leo_time = np.linspace(0, leo_duration, 500)
+s2_time = np.linspace(leo_duration, leo_duration + s2_duration, 500)
+s3_time = np.linspace(leo_duration + s2_duration, leo_duration + s2_duration + s3_duration, 500)
+
+# Calculate masses for each stage
+leo_masses = total_mass - alpha * leo_time
+s2_masses = (total_mass - leo_fuel_mass - leo_rocket_mass) - beta * (s2_time - leo_duration)
+s3_masses = (total_mass - leo_fuel_mass - s2_fuel_mass - leo_rocket_mass - s2_rocket_mass) - gamma * (s3_time - leo_duration - s2_duration)
+
+# Combine for plotting with discontinuities
+time = np.concatenate((leo_time, s2_time, s3_time))
+masses = np.concatenate((leo_masses, s2_masses, s3_masses))
+
+plt.figure(figsize=(10, 6))
+plt.plot(leo_time, leo_masses, color='black')
+plt.plot(s2_time, s2_masses, color='black')
+plt.plot(s3_time, s3_masses, color='black')
+
+# Add vertical lines at stage separations
+plt.axvline(x=leo_duration, color='magenta', linestyle='--', label='Stage Separation 1')
+plt.axvline(x=leo_duration + s2_duration, color='olive', linestyle='--', label='Stage Separation 2')
+
+# Add labels for stage separations
+plt.text(leo_duration, max(masses) * 1.05 - 500000,
+          f'Stage Separation 2\n'
+         f't={leo_duration:.2f}s\n'
+         f'LEO Mass: {leo_masses[-1]:.2f} kg\n'
+         f'Stage 2 Mass: {s2_masses[0]:.2f} kg', 
+         ha='left', color='black', va='center')
+plt.text(leo_duration + s2_duration, max(masses) * 1.05 - 500000,
+          f'Stage Separation 2\n'
+         f't={s2_duration:.2f}s\n'
+         f'LEO Mass: {s2_masses[-1]:.2f} kg\n'
+         f'Stage 2 Mass: {s3_masses[0]:.2f} kg', 
+         ha='left', color='black', va='center')
+
+plt.title('Rocket Mass vs. Time')
+plt.ylabel('Mass (kg)')
+plt.xlabel('Time (s)')
+plt.legend()
+plt.tight_layout()
+plt.show()
