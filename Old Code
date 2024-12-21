@@ -1,0 +1,118 @@
+# Multistage Rocket in Non-Uniform G Project Code
+
+# Mass, height (1-D), and velocity are varible wrt to time and time steps show height above surface and 1-D velocity
+
+import matplotlib as plot
+import numbpy as np
+
+#--------------------Section: Functions-----------------------------
+
+def gravity(y, earth_mass, grav_const, earth_rad):
+
+    return grav_const * earth_mass / (earth_rad + y)**2
+
+#--------------------Section: Inital Conditions/Variables -----------------------------
+
+# True constant
+# assumed constant for all stages in reality this is a vector space dimension n for each exhaust and consumption of each stage; optimization problem
+
+earth_rad = 6.378137 * 10^6 # meters
+earth_mass = 5.972 * 10^24 #kg
+grav_const = 6.67 * 10^-11
+
+u_1, u_2, u_3 = 2549, 3846, 4203 # m/s
+
+alpha, beta, gamma = 13534, 1172, 217  # kg/s
+
+y_0 = 0
+v_0 = 0
+
+#Variable masses (kg)
+total_mass = 2.76818 * 10^6
+leo_fuel_mass = 2.04 *10^6
+leo_rocket_mass = .139 * 10^6
+s2_fuel_mass = .430 * 10^6
+s2_rocket_mass = .04 * 10^6
+s3_fuel_mass = .104 * 10^6
+s3_rocket_mass = .015 * 10^6
+payload_mass =  total_mass - (leo_fuel_mass + leo_mass + s2_fuel_mass + s2_rocket_mass +s3_fuel_mass + s3_rocket_mass)
+
+total_fuel = leo_fuel_mass + s2_fuel_mass + s3_fuel_mass
+
+# Time steps
+total_time = (leo_fuel_mass/alpha) + (s2_fuel_mass/beta) + (s3_fuel_mass/gamma)
+h = .01 # trivial for now
+tot_steps = total_time / h
+
+#--------------------Section: Storage Arrays -----------------------------
+# 1 x n arrays where each indices respective for respective time steps
+
+fuel_mass_array = []
+position_array = []
+velocity_array = []
+time_array = []
+
+#--------------------Section: Multistage While Loops for each Stage;  -----------------------------
+
+current_m = total_mass
+current_f = total_fuel
+current_v = v_0
+current_y = y_0
+current_t = 0
+stages = [(leo_fuel_mass,alpha,u_1),(s2_fuel_mass,beta,u_2),(s3_fuel_mass,gamma,u_3)]
+
+for stages in stages:
+    stage_fuel,burn_rate,exhaust_velocity = stage
+    
+    while stage_fuel > 0:
+        
+        g = gravity(current_y, earth_mass, grav_const, earth_rad)
+        
+        thrust = burn_rate * exhaust_velocity
+        
+        a = (thrust - current_m * g)/current_m
+        
+        current_v += a * h
+        current_y += current_v * h
+        
+        fuel_burnt = burn_rate * h
+        stage_fuel -= fuel_burnt
+        current_m -= fuel_burnt
+        current_f -= fuel_burnt
+        
+        current_t += h
+        
+        fuel_mass_array.append(current_fuel)
+        position_array.append(current_position)
+        velocity_array.append(current_velocity)
+        time_array.append(current_time)       
+            
+            
+
+#--------------------Section: Figures -----------------------------
+
+fig, axs = plot.subplots(3, 1, figsize=(8, 12))
+
+# Position vs. Time
+axs[0].plot(time_array, position_array, label='Height', color='blue')
+axs[0].set_xlabel('Time (s)')
+axs[0].set_ylabel('Height (m)')
+axs[0].grid()
+axs[0].legend()
+
+# Velocity vs. Time
+axs[1].plot(time_array, velocity_array, label='Velocity', color='red')
+axs[1].set_xlabel('Time (s)')
+axs[1].set_ylabel('Velocity (m/s)')
+axs[1].grid()
+axs[1].legend()
+
+# Fuel Mass vs. Time
+axs[2].plot(time_array, fuel_mass_array, label='Fuel Mass', color='green')
+axs[2].set_xlabel('Time (s)')
+axs[2].set_ylabel('Fuel Mass (kg)')
+axs[2].grid()
+axs[2].legend()
+
+plt.tight_layout()
+plt.show()
