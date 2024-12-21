@@ -42,7 +42,7 @@ plt.axvline(x=leo_duration + s2_duration, color='olive', linestyle='--', label='
 
 # Add labels for stage separations
 plt.text(leo_duration, max(masses) * 1.05 - 500000,
-          f'Stage Separation 2\n'
+          f'Stage Separation 1\n'
          f't={leo_duration:.2f}s\n'
          f'LEO Mass: {leo_masses[-1]:.2f} kg\n'
          f'Stage 2 Mass: {s2_masses[0]:.2f} kg', 
