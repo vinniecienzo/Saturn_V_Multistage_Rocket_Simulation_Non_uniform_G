@@ -1,0 +1,149 @@
+# NON TRIVIAL CODE lmao
+
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp, cumulative_trapezoid
+
+g = 6.67e-11  # Gravitational constant (m^3/kg/s^2)
+m_e = 5.972e24  # Mass of Earth (kg)
+r_e = 6.378137e6  # Radius of Earth (m)
+
+# Saturn V parameters from Table 2
+total_mass = 2.76818e6  # Total mass of rocket (kg)
+leo_fuel_mass = 2.04e6  # Stage 1 fuel mass (kg)
+leo_rocket_mass = 0.139e6  # Stage 1 structure mass (kg)
+s2_fuel_mass = 0.430e6  # Stage 2 fuel mass (kg)
+s2_rocket_mass = 0.04e6  # Stage 2 structure mass (kg)
+s3_fuel_mass = 0.104e6  # Stage 3 fuel mass (kg)
+s3_rocket_mass = 0.015e6  # Stage 3 structure mass (kg)
+
+# Burn rates (kg/s)
+alpha = 13534
+beta = 1172
+gamma = 217
+
+# Exhasut V
+u1 = 2549
+u2 = 3846
+u3 = 4203
+
+# self explanitory 
+stage_1_mass = total_mass
+stage_2_mass = stage_1_mass - leo_fuel_mass - leo_rocket_mass
+stage_3_mass = stage_2_mass - s2_fuel_mass - s2_rocket_mass
+
+# Rocket stages
+stages = [
+    ((0, leo_fuel_mass / alpha), alpha, stage_1_mass, u1),  # Stage 1
+    ((0, s2_fuel_mass / beta), beta, stage_2_mass, u2),     # Stage 2
+    ((0, s3_fuel_mass / gamma), gamma, stage_3_mass, u3)    # Stage 3 (First Burn)
+]
+
+# Gabes advice 
+def rocket_ode(t, v, k, u, m_0):
+    current_mass = m_0 - k * t
+    if current_mass <= 0:
+        raise ValueError(f"Mass has become zero or negative at time {t:.2f}.")
+    
+    # Forces and acceleration
+    gravity_force = -((g * m_e) / (r_e)**2)  # Gravitational force (near surface)
+    thrust_force = (u * k) / current_mass  # Thrust force
+    dv = gravity_force + thrust_force  # Acceleration
+    return dv
+
+# integrate position from velocity function... magic
+def integrate_position(time, velocity):
+    return cumulative_trapezoid(velocity, time, initial=0)
+
+v_0 = 0  # Initial velocity (m/s)
+all_time = []
+all_velocity = []
+
+# iterate per stage; then concatenate or some shit 
+for i, (time_span, burn_rate, initial_mass, exhaust_velocity) in enumerate(stages):
+    sol = solve_ivp(
+        rocket_ode, time_span, [v_0],
+        t_eval=np.linspace(time_span[0], time_span[1], 1000),
+        args=(burn_rate, exhaust_velocity, initial_mass),
+        method='RK45'
+    )
+    
+    if all_time:
+        sol.t += all_time[-1]  # Adjust time for continuity
+    all_time.extend(sol.t)
+    all_velocity.extend(sol.y[0])  # Velocity
+
+    # Update initial conditions for the next stage
+    v_0 = sol.y[0, -1]
+
+# Without second burn... becuase I didn't releazie there was a a third burn... array from init ODE
+time_without_tli = np.array(all_time)
+velocity_without_tli = np.array(all_velocity)
+altitude_without_tli = integrate_position(time_without_tli, velocity_without_tli)
+
+# Coasting, didn't realize this was a thing but learned somethung
+coast_duration = 600  # Coasting phase in seconds
+coast_time = np.linspace(all_time[-1], all_time[-1] + coast_duration, 1000)
+coast_velocity = [v_0] * len(coast_time)  # Velocity remains constant during coasting
+all_time.extend(coast_time)
+all_velocity.extend(coast_velocity)
+
+# second burn; same as stage three
+s3_tli_mass = stage_3_mass - s3_fuel_mass  # Adjusted mass for second burn
+tli_burn_rate = gamma  # Burn rate remains the same
+tli_time_span = (0, s3_fuel_mass / gamma)
+tli_exhaust_velocity = u3
+
+sol_tli = solve_ivp(
+    rocket_ode, tli_time_span, [v_0],
+    t_eval=np.linspace(tli_time_span[0], tli_time_span[1], 1000),
+    args=(tli_burn_rate, tli_exhaust_velocity, stage_3_mass),
+    method='RK45'
+)
+#extend arrays for new data
+sol_tli.t += all_time[-1]  # Adjust time for continuity
+all_time.extend(sol_tli.t)
+all_velocity.extend(sol_tli.y[0])
+
+#  adjust arrtays w/ second burn
+time_with_tli = np.array(all_time)
+velocity_with_tli = np.array(all_velocity)
+altitude_with_tli = integrate_position(time_with_tli, velocity_with_tli)
+
+# Plot velocity without second burn
+plt.figure(figsize=(10, 6))
+plt.plot(time_without_tli, velocity_without_tli, label="Without Second Burn", color='red')
+plt.xlabel("Time (s)")
+plt.ylabel("Velocity (m/s)")
+plt.title("Velocity Profile Without Second Burn")
+plt.legend()
+plt.grid()
+plt.savefig("Figure 4")
+plt.show()
+
+# Plot velocity with second burn
+plt.figure(figsize=(10, 6))
+plt.plot(time_with_tli, velocity_with_tli, label="With Second Burn (TLI)", color='orange')
+plt.xlabel("Time (s)")
+plt.ylabel("Velocity (m/s)")
+plt.title("Velocity Profile With Second Burn (TLI)")
+plt.text(time_with_tli[-1], velocity_with_tli[-1], 
+         f'Final velocity: {velocity_with_tli[-1]:.2f} m/s', 
+         color='black', 
+         ha='right', 
+         va='bottom')
+plt.legend()
+plt.grid()
+plt.savefig("Figure 5")
+plt.show()
+
+# Plot altitude comparison
+plt.figure(figsize=(10, 6))
+plt.plot(time_without_tli, altitude_without_tli / 1000, label="Without Second Burn; Final Position 10979km", color='blue')
+plt.xlabel("Time (s)")
+plt.ylabel("Altitude / Distance Traveled (km)")
+plt.title("Position integrated w.r.t. Trans-Lunar Injection")
+plt.legend()
+plt.grid()
+plt.savefig("Figure 6")
+plt.show()
