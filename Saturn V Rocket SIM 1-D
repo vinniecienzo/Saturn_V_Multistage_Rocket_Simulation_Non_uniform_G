@@ -76,7 +76,7 @@ for i, (time_span, burn_rate, initial_mass, exhaust_velocity) in enumerate(stage
     # Update initial conditions for the next stage
     v_0 = sol.y[0, -1]
 
-# Without second burn... becuase I didn't releazie there was a a third burn... array from init ODE
+# Without second third burn... becuase I didn't releazie there was a second third burn... array from init ODE
 time_without_tli = np.array(all_time)
 velocity_without_tli = np.array(all_velocity)
 altitude_without_tli = integrate_position(time_without_tli, velocity_without_tli)
